@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Coding Academy Map</title>
+<title>Coding Academy</title>
+
 <style>
 
 body{
@@ -18,35 +19,23 @@ padding:15px;
 background:linear-gradient(90deg,#6366f1,#a855f7);
 }
 
+#xp{
+position:absolute;
+right:20px;
+top:20px;
+font-weight:bold;
+}
+
 canvas{
 display:block;
 margin:auto;
-background:#6ee7b7;
 border-radius:15px;
+background:#87ceeb;
 }
 
 #editor{
 display:none;
-height:500px;
 margin-top:10px;
-}
-
-#code{
-width:50%;
-height:100%;
-float:left;
-background:#111827;
-color:#22c55e;
-font-family:monospace;
-padding:10px;
-border:none;
-}
-
-#preview{
-width:50%;
-height:100%;
-float:left;
-background:white;
 }
 
 button{
@@ -60,40 +49,76 @@ cursor:pointer;
 font-weight:bold;
 }
 
+#lessonContainer{
+display:flex;
+height:420px;
+}
+
+#lesson{
+width:30%;
+background:#1e293b;
+padding:15px;
+text-align:left;
+overflow:auto;
+}
+
+#code{
+width:35%;
+height:100%;
+background:#111827;
+color:#22c55e;
+font-family:monospace;
+padding:10px;
+border:none;
+}
+
+#preview{
+width:35%;
+height:100%;
+background:white;
+}
+
 </style>
 </head>
+
 <body>
 
 <header>
-<h1>🚀 Coding Academy Map</h1>
-<p>Click a pillar to learn and practice coding</p>
+<h1>🚀 Coding Academy</h1>
+<p>Click an island to start learning</p>
+<div id="xp">⭐ XP: 0</div>
 </header>
 
-<canvas id="map" width="900" height="500"></canvas>
+<canvas id="map"></canvas>
 
 <div id="editor">
 
-<button onclick="runCode()">Run Code ▶</button>
-<button onclick="closeEditor()">Back to Map</button>
+<button onclick="runCode()">Run Code</button>
+<button onclick="completeLesson()">Complete</button>
+<button onclick="closeEditor()">Back</button>
 
-<div>
-<textarea id="code">
+<div id="lessonContainer">
 
-<!DOCTYPE html>
-<html>
-<body>
+<div id="lesson">
 
-<h1>Hello Student!</h1>
-<p>Try editing this code.</p>
+<h2 id="lessonTitle"></h2>
 
-</body>
-</html>
+<h3>Lesson</h3>
+<p id="lessonText"></p>
 
-</textarea>
+<h3>Mission</h3>
+<p id="lessonGoal"></p>
 
-<iframe id="preview"></iframe>
+<h3>Hint</h3>
+<p id="lessonHint"></p>
+
 </div>
 
+<textarea id="code"></textarea>
+
+<iframe id="preview"></iframe>
+
+</div>
 </div>
 
 <script>
@@ -101,43 +126,125 @@ font-weight:bold;
 const canvas = document.getElementById("map")
 const ctx = canvas.getContext("2d")
 
-const pillars = [
-{x:150,y:350,id:1,title:"HTML Basics",desc:"Learn how websites are structured."},
-{x:300,y:250,id:2,title:"CSS Styling",desc:"Learn how to style websites."},
-{x:450,y:350,id:3,title:"JavaScript",desc:"Make websites interactive."},
-{x:600,y:220,id:4,title:"Functions",desc:"Learn reusable code blocks."},
-{x:750,y:330,id:5,title:"Game Logic",desc:"Use code to build games."}
+let xp = 0
+let unlocked = 1
+let currentLesson = 1
+
+const islands = [
+{x:0.2,y:0.7,id:1},
+{x:0.4,y:0.4,id:2},
+{x:0.6,y:0.7,id:3},
+{x:0.75,y:0.35,id:4},
+{x:0.9,y:0.65,id:5}
 ]
+
+const lessons = {
+
+1:{
+title:"HTML Basics",
+text:"HTML builds the structure of a webpage.",
+goal:"Add another paragraph.",
+hint:"Use <p> tags.",
+starter:`<h1>Hello</h1>
+<p>My first website</p>`
+},
+
+2:{
+title:"CSS Styling",
+text:"CSS changes how pages look.",
+goal:"Change the background color.",
+hint:"Use style='background:red'",
+starter:`<body style="background:white">
+<h1>Hello</h1>
+</body>`
+},
+
+3:{
+title:"JavaScript",
+text:"JavaScript makes pages interactive.",
+goal:"Show an alert when clicking a button.",
+hint:"onclick='alert(\"Hi\")'",
+starter:`<button onclick="alert('Hi')">Click</button>`
+},
+
+4:{
+title:"Functions",
+text:"Functions reuse code.",
+goal:"Create a function and run it.",
+hint:"function hello(){}",
+starter:`<button onclick="hello()">Click</button>
+
+<script>
+function hello(){
+alert("Hello")
+}
+<\/script>`
+},
+
+5:{
+title:"Random Numbers",
+text:"Games use random numbers.",
+goal:"Show a random number.",
+hint:"Math.random()",
+starter:`<button onclick="roll()">Roll</button>
+
+<script>
+function roll(){
+alert(Math.floor(Math.random()*10))
+}
+<\/script>`
+}
+
+}
+
+function resizeCanvas(){
+
+canvas.width = window.innerWidth * 0.9
+canvas.height = 400
+
+drawMap()
+
+}
 
 function drawMap(){
 
-// sky
-ctx.fillStyle="#87ceeb"
-ctx.fillRect(0,0,900,250)
+ctx.clearRect(0,0,canvas.width,canvas.height)
 
-// ground
 ctx.fillStyle="#22c55e"
-ctx.fillRect(0,250,900,250)
+ctx.fillRect(0,canvas.height/2,canvas.width,canvas.height/2)
 
-// path
-ctx.fillStyle="#d4a373"
-ctx.fillRect(0,320,900,40)
+ctx.strokeStyle="#d4a373"
+ctx.lineWidth=6
 
-// pillars
-pillars.forEach(p=>{
+for(let i=0;i<islands.length-1;i++){
 
-ctx.fillStyle="#a855f7"
-ctx.fillRect(p.x,p.y,40,80)
+let a=islands[i]
+let b=islands[i+1]
 
-ctx.fillStyle="white"
-ctx.font="20px Arial"
-ctx.fillText(p.id,p.x+15,p.y+45)
+ctx.beginPath()
+ctx.moveTo(a.x*canvas.width,a.y*canvas.height)
+ctx.lineTo(b.x*canvas.width,b.y*canvas.height)
+ctx.stroke()
+
+}
+
+islands.forEach(i=>{
+
+let x=i.x*canvas.width
+let y=i.y*canvas.height
+
+ctx.fillStyle = i.id<=unlocked ? "#facc15" : "#555"
+
+ctx.beginPath()
+ctx.arc(x,y,25,0,Math.PI*2)
+ctx.fill()
+
+ctx.fillStyle="black"
+ctx.fillText(i.id,x-3,y+4)
 
 })
 
 }
-
-drawMap()
 
 canvas.addEventListener("click",function(e){
 
@@ -145,12 +252,19 @@ const rect = canvas.getBoundingClientRect()
 const mx = e.clientX - rect.left
 const my = e.clientY - rect.top
 
-pillars.forEach(p=>{
+islands.forEach(i=>{
 
-if(mx>p.x && mx<p.x+40 && my>p.y && my<p.y+80){
+let x=i.x*canvas.width
+let y=i.y*canvas.height
 
-alert("Pillar "+p.id+": "+p.title+"\n\n"+p.desc)
+if(Math.hypot(mx-x,my-y)<25){
 
+if(i.id>unlocked){
+alert("Finish earlier lessons first")
+return
+}
+
+loadLesson(i.id)
 openEditor()
 
 }
@@ -159,28 +273,60 @@ openEditor()
 
 })
 
+function loadLesson(id){
+
+currentLesson=id
+const l=lessons[id]
+
+lessonTitle.innerText=l.title
+lessonText.innerText=l.text
+lessonGoal.innerText=l.goal
+lessonHint.innerText=l.hint
+
+code.value=l.starter
+
+}
+
 function openEditor(){
 
-document.getElementById("editor").style.display="block"
+editor.style.display="block"
 canvas.style.display="none"
 
 }
 
 function closeEditor(){
 
-document.getElementById("editor").style.display="none"
+editor.style.display="none"
 canvas.style.display="block"
+
+drawMap()
 
 }
 
 function runCode(){
 
-const code = document.getElementById("code").value
-const frame = document.getElementById("preview")
-
-frame.srcdoc = code
+preview.srcdoc = code.value
 
 }
+
+function completeLesson(){
+
+xp+=50
+
+if(currentLesson===unlocked){
+unlocked++
+}
+
+document.getElementById("xp").innerText="⭐ XP: "+xp
+
+alert("Lesson complete!")
+
+drawMap()
+
+}
+
+window.onload = resizeCanvas
+window.onresize = resizeCanvas
 
 </script>
 
